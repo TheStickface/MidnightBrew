@@ -26,10 +26,14 @@ function MB:RegisterModule(name, events, onEvent, onUpdate)
     end
 end
 
--- Heuristic Engine
+-- Heuristic Engine (PATCH 12.0 SECURE VERSION)
 function MB:UpdateCombatState()
-    local hpPct = (UnitHealth("player") / UnitHealthMax("player")) * 100
-    local isKiting = GetUnitSpeed("player") > 7 
+    -- Using C_UnitHealth to avoid "Secret Number" arithmetic errors
+    local hpPct = (C_UnitHealth and C_UnitHealth.GetPercentHealth("player")) or 100
+    
+    -- Using C_UnitMove for secure speed detection
+    local speed = (C_UnitMove and C_UnitMove.GetSpeed("player")) or 0
+    local isKiting = speed > 7 
     
     local newState = MB.State.STABLE
     if hpPct < 30 then newState = MB.State.CRITICAL
@@ -76,7 +80,13 @@ MB:RegisterModule("Auditor", {"PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED", "
     elseif event == "PLAYER_REGEN_ENABLED" then
         local healerManaAtEnd = (MB.healerUnit and (UnitPower(MB.healerUnit) / UnitPowerMax(MB.healerUnit))) or 1
         local manaDiff = (healerManaAtStart - healerManaAtEnd) * 100
-        local score = (UnitHealthMax("player") * 1.5) / (damageInPull + (manaDiff * 1000) + 1)
+        
+        -- Secure Score Calculation (avoiding direct division if possible)
+        local score = 1.0
+        if damageInPull > 0 then
+            score = UnitHealthMax("player") / (damageInPull + 1)
+        end
+        
         local rating = score > 2 and "S" or (score > 1 and "A" or "B")
         if ns.UI then ns.UI:ShowPullRating(rating) end
     end
