@@ -26,13 +26,27 @@ function MB:RegisterModule(name, events, onEvent, onUpdate)
     end
 end
 
--- Heuristic Engine (PATCH 12.0 SECURE VERSION)
+-- Heuristic Engine (HYBRID RETAIL + MIDNIGHT VERSION)
 function MB:UpdateCombatState()
-    -- Using C_UnitHealth to avoid "Secret Number" arithmetic errors
-    local hpPct = (C_UnitHealth and C_UnitHealth.GetPercentHealth("player")) or 100
+    local hpPct = 100
     
-    -- Using C_UnitMove for secure speed detection
-    local speed = (C_UnitMove and C_UnitMove.GetSpeed("player")) or 0
+    -- Try Midnight Secure API first
+    if C_UnitHealth and C_UnitHealth.GetPercentHealth then
+        hpPct = C_UnitHealth.GetPercentHealth("player")
+    else
+        -- Fallback to Retail (Direct Math)
+        local cur = UnitHealth("player")
+        local max = UnitHealthMax("player")
+        if max > 0 then hpPct = (cur / max) * 100 end
+    end
+    
+    local speed = 0
+    if C_UnitMove and C_UnitMove.GetSpeed then
+        speed = C_UnitMove.GetSpeed("player")
+    else
+        speed = GetUnitSpeed("player")
+    end
+    
     local isKiting = speed > 7 
     
     local newState = MB.State.STABLE
@@ -43,6 +57,7 @@ function MB:UpdateCombatState()
     if newState ~= MB.CurrentState then
         MB.CurrentState = newState
         ns.Debug:Log("HEURISTIC", "State Changed: " .. newState)
+        if ns.UI and ns.UI.UpdateStateDisplay then ns.UI:UpdateStateDisplay(newState) end
     end
 end
 
@@ -81,14 +96,29 @@ MB:RegisterModule("Auditor", {"PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED", "
         local healerManaAtEnd = (MB.healerUnit and (UnitPower(MB.healerUnit) / UnitPowerMax(MB.healerUnit))) or 1
         local manaDiff = (healerManaAtStart - healerManaAtEnd) * 100
         
-        -- Secure Score Calculation (avoiding direct division if possible)
         local score = 1.0
         if damageInPull > 0 then
             score = UnitHealthMax("player") / (damageInPull + 1)
         end
         
         local rating = score > 2 and "S" or (score > 1 and "A" or "B")
+        MB.LastPullRating = rating -- Save for Learning Engine
         if ns.UI then ns.UI:ShowPullRating(rating) end
+    end
+end)
+
+-- LEARNING ENGINE
+local pullHistory = {}
+
+MB:RegisterModule("LearningEngine", {"PLAYER_REGEN_ENABLED"}, function(event)
+    local lastRating = MB.LastPullRating or "B"
+    local hp = UnitPercentHealth and UnitPercentHealth("player") or (UnitHealth("player")/UnitHealthMax("player")*100)
+    
+    table.insert(pullHistory, { rating = lastRating, hp = hp })
+    
+    if #pullHistory >= 5 then
+        ns.Debug:Log("LEARNING", "Analyzing performance batch...")
+        pullHistory = {} -- Reset window
     end
 end)
 
