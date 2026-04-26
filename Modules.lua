@@ -1,5 +1,5 @@
 local addonName, ns = ...
-local MB = ns.Core or {}
+local MB = ns.Core
 ns.Modules = {}
 
 -- Combat States (Heuristics)
@@ -22,11 +22,11 @@ function MB:RegisterModule(name, events, onEvent, onUpdate)
         enabled = true
     }
     for _, event in ipairs(events) do
-        ns.Core:RegisterEvent(event)
+        self:RegisterEvent(event)
     end
 end
 
--- Heuristic Engine: Classifies combat every 0.5s
+-- Heuristic Engine
 function MB:UpdateCombatState()
     local hpPct = (UnitHealth("player") / UnitHealthMax("player")) * 100
     local isKiting = GetUnitSpeed("player") > 7 
@@ -50,7 +50,7 @@ function MB:DispatchModuleEvent(event, ...)
     end
 end
 
--- DETOX SENTINEL (Converted Module)
+-- DETOX SENTINEL
 MB:RegisterModule("DetoxSentinel", {"UNIT_AURA"}, function(event, unit)
     if not unit or not unit:find("party") then return end
     local i = 1

@@ -2,33 +2,36 @@ local addonName, ns = ...
 local MB = CreateFrame("Frame")
 ns.Core = MB
 
-local defaults = { 
-    hudEnabled = true, 
-    sidebarEnabled = true, 
-    todThreshold = 0.15, 
-    autoMark = true,
-    dungeonIntel = true
-}
-
-function MB:OnLoad()
-    ns.Debug:Initialize()
-    self:RegisterEvent("ADDON_LOADED")
+function MB:StartEngine()
+    ns.Debug:Log("SYSTEM", "Starting Heuristics Engine...")
+    
+    -- Safety check: ensure Modules.lua has attached this function
+    if self.UpdateCombatState then
+        C_Timer.NewTicker(0.5, function() self:UpdateCombatState() end)
+    else
+        ns.Debug:Log("ERROR", "UpdateCombatState not found!")
+    end
+    
     self:RegisterEvent("PLAYER_REGEN_DISABLED")
     self:RegisterEvent("PLAYER_REGEN_ENABLED")
-    
-    C_Timer.NewTicker(0.5, function() self:UpdateCombatState() end)
-    self:SetScript("OnEvent", function(f, e, ...) self:OnEvent(e, ...) end)
+    self:RegisterEvent("UNIT_AURA")
+    self:RegisterEvent("UNIT_HEALTH")
+    self:RegisterEvent("PLAYER_TOTEM_UPDATE")
+    self:RegisterEvent("PLAYER_TARGET_CHANGED")
+    self:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
 end
 
-function MB:OnEvent(event, ...)
-    if event == "ADDON_LOADED" and ... == addonName then
+function MB:OnEvent(event, arg1)
+    if event == "ADDON_LOADED" and arg1 == addonName then
+        local defaults = { hudEnabled = true, sidebarEnabled = true, todThreshold = 0.15, autoMark = true }
         MidnightBrewDB = MidnightBrewDB or defaults
-        ns.Debug:Log("SYSTEM", "Engine 2.0 (Modular) Online")
+        self:StartEngine()
     end
     
-    if MB.DispatchModuleEvent then
-        self:DispatchModuleEvent(event, ...)
+    if self.DispatchModuleEvent then
+        self:DispatchModuleEvent(event)
     end
 end
 
-MB:OnLoad()
+MB:RegisterEvent("ADDON_LOADED")
+MB:SetScript("OnEvent", function(f, e, a1) MB:OnEvent(e, a1) end)

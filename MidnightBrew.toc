@@ -1,12 +1,11 @@
 ## Interface: 120005
 ## Title: MidnightBrew
-## Notes: Brewmaster Survival Dashboard & M+ Intelligence (12.0.5)
-## Author: Antigravity
-## Version: 2.1
+## Notes: Premium Brewmaster Survival HUD
 ## SavedVariables: MidnightBrewDB, MidnightBrewDebugDB
 
 Debug.lua
-Tests.lua
 Core.lua
 UI.lua
+Modules.lua
 Config.lua
+Tests.lua
