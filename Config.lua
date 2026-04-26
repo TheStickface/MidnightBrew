@@ -2,7 +2,7 @@ local addonName, ns = ...
 local MB = ns.Core
 
 local frame = CreateFrame("Frame", "MB_ConfigWindow", UIParent, "BackdropTemplate")
-frame:SetSize(400, 320)
+frame:SetSize(400, 350)
 frame:SetPoint("CENTER")
 frame:SetMovable(true)
 frame:EnableMouse(true)
@@ -23,14 +23,6 @@ local title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 title:SetPoint("TOPLEFT", 20, -20)
 title:SetText("MidnightBrew |cff00ccffControl Center|r")
 
-local status = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-status:SetPoint("TOPRIGHT", -20, -20)
-C_Timer.NewTicker(0.5, function()
-    if frame:IsVisible() and MB then
-        status:SetText("State: |cff00ff00" .. (MB.CurrentState or "STABLE") .. "|r")
-    end
-end)
-
 local function CreateToggle(name, label, yOffset, dbKey)
     local cb = CreateFrame("CheckButton", "MB_CB_"..name, frame, "ChatConfigCheckButtonTemplate")
     cb:SetPoint("TOPLEFT", 20, yOffset)
@@ -41,14 +33,24 @@ local function CreateToggle(name, label, yOffset, dbKey)
 end
 
 CreateToggle("HUD", "Enable Survival HUD", -60, "hudEnabled")
-CreateToggle("DungeonIntel", "Enable Dungeon Intelligence", -90, "dungeonIntel")
-CreateToggle("AutoMark", "Auto-Mark Dangerous Mobs", -120, "autoMark")
+CreateToggle("Sidebar", "Enable Utility Sidebar", -90, "sidebarEnabled")
+CreateToggle("DungeonIntel", "Enable Dungeon Intelligence", -120, "dungeonIntel")
 
-local recBtn = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-recBtn:SetSize(120, 25)
-recBtn:SetPoint("TOPLEFT", 20, -160)
-recBtn:SetText("Record Target")
-recBtn:SetScript("OnClick", function() if MB.RecordCurrentTarget then MB:RecordCurrentTarget() end end)
+-- UNLOCK HUD BUTTON
+local unlockBtn = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+unlockBtn:SetSize(120, 30)
+unlockBtn:SetPoint("TOPLEFT", 20, -160)
+unlockBtn:SetText("Unlock HUD")
+unlockBtn:SetScript("OnClick", function() 
+    local MB_HUD = _G["MB_HUD"]
+    local MB_Sidebar = _G["MB_Sidebar"]
+    if not MB_HUD then return end
+    
+    MB_HUD.unlocked = not MB_HUD.unlocked
+    if MB_Sidebar then MB_Sidebar.unlocked = MB_HUD.unlocked end
+    
+    print("|cff00ccff[MB]|r: HUD " .. (MB_HUD.unlocked and "|cff00ff00Unlocked|r (Drag with Mouse)" or "|cffff0000Locked|r"))
+end)
 
 local testBtn = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
 testBtn:SetSize(150, 25)

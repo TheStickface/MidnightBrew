@@ -6,26 +6,19 @@ ns.UI = UI
 local MB_HUD = CreateFrame("Frame", "MB_HUD", UIParent, "BackdropTemplate")
 local MB_Sidebar = CreateFrame("Frame", "MB_Sidebar", UIParent, "BackdropTemplate")
 
--- Edit Mode Registration (Secure Mixin)
+-- Edit Mode Registration
 if EditModeManager then
-    EditModeManager:RegisterSystem({
-        instance = MB_HUD,
-        systemName = "MB_SurvivalHUD",
-        systemType = Enum.EditModeSystemType.Main,
-    })
-    EditModeManager:RegisterSystem({
-        instance = MB_Sidebar,
-        systemName = "MB_UtilitySidebar",
-        systemType = Enum.EditModeSystemType.Main,
-    })
+    EditModeManager:RegisterSystem({ instance = MB_HUD, systemName = "MB_SurvivalHUD", systemType = Enum.EditModeSystemType.Main })
+    EditModeManager:RegisterSystem({ instance = MB_Sidebar, systemName = "MB_UtilitySidebar", systemType = Enum.EditModeSystemType.Main })
 end
 
 function UI:Initialize()
-    -- Setup HUD
+    -- HUD Setup
     MB_HUD:SetSize(250, 40)
     MB_HUD:SetPoint("CENTER", 0, -150)
     MB_HUD:SetMovable(true)
-    MB_HUD:SetClampedToScreen(true)
+    MB_HUD:EnableMouse(true)
+    MB_HUD:RegisterForDrag("LeftButton")
     
     local ehpBar = CreateFrame("StatusBar", nil, MB_HUD)
     ehpBar:SetAllPoints()
@@ -34,57 +27,47 @@ function UI:Initialize()
     ehpBar:SetMinMaxValues(0, 100)
     self.ehpBar = ehpBar
 
-    -- Setup Sidebar (GLASSMORPHISM STYLE)
-    MB_Sidebar:SetSize(120, 100)
+    -- Sidebar Setup
+    MB_Sidebar:SetSize(120, 60)
     MB_Sidebar:SetPoint("RIGHT", -20, 0)
     MB_Sidebar:SetMovable(true)
-    MB_Sidebar:SetClampedToScreen(true)
-    
-    MB_Sidebar:SetBackdrop({
-        bgFile = "Interface\\Buttons\\WHITE8X8",
-        edgeFile = "Interface\\Buttons\\WHITE8X8",
-        edgeSize = 1,
-    })
+    MB_Sidebar:EnableMouse(true)
+    MB_Sidebar:RegisterForDrag("LeftButton")
+    MB_Sidebar:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
     MB_Sidebar:SetBackdropColor(0, 0, 0, 0.6)
     MB_Sidebar:SetBackdropBorderColor(1, 1, 1, 0.2)
 
-    local stateTitle = MB_Sidebar:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    stateTitle:SetPoint("TOP", 0, -10)
-    stateTitle:SetText("COMBAT STATE")
-
     local stateValue = MB_Sidebar:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
-    stateValue:SetPoint("TOP", stateTitle, "BOTTOM", 0, -5)
+    stateValue:SetPoint("CENTER", 0, 0)
     stateValue:SetText("STABLE")
     self.stateValue = stateValue
 
-    -- Movement Handles
-    local selection = CreateFrame("Frame", nil, MB_HUD, "BackdropTemplate")
-    selection:SetAllPoints()
-    selection:SetBackdrop({ edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 2 })
-    selection:SetBackdropBorderColor(0, 0.7, 1, 1)
-    selection:Hide()
-    self.selection = selection
+    -- Drag Scripts
+    local function OnDragStart(self)
+        if self.unlocked or (EditModeManager and EditModeManager:IsEditModeActive()) then
+            self:StartMoving()
+        end
+    end
+    local function OnDragStop(self)
+        self:StopMovingOrSizing()
+        local p, _, rp, x, y = self:GetPoint()
+        MidnightBrewDB.positions = MidnightBrewDB.positions or {}
+        MidnightBrewDB.positions[self:GetName()] = {p, rp, x, y}
+    end
+
+    MB_HUD:SetScript("OnDragStart", OnDragStart)
+    MB_HUD:SetScript("OnDragStop", OnDragStop)
+    MB_Sidebar:SetScript("OnDragStart", OnDragStart)
+    MB_Sidebar:SetScript("OnDragStop", OnDragStop)
 end
 
-function UI:UpdateEHPBar(pct)
-    if self.ehpBar then self.ehpBar:SetValue(pct or 0) end
-end
-
+function UI:UpdateEHPBar(pct) if self.ehpBar then self.ehpBar:SetValue(pct or 0) end end
 function UI:UpdateStateDisplay(state)
     if not self.stateValue then return end
     self.stateValue:SetText(state)
     if state == "CRITICAL" then self.stateValue:SetTextColor(1, 0, 0)
     elseif state == "PRESSURE" then self.stateValue:SetTextColor(1, 0.5, 0)
-    elseif state == "KITING" then self.stateValue:SetTextColor(0, 1, 1)
     else self.stateValue:SetTextColor(0, 1, 0) end
-end
-
-function UI:TriggerDispelAlert(name, type)
-    print("|cffff0000[MB ALERT]|r: DISPEL " .. name .. " (" .. type .. ")")
-end
-
-function UI:ShowPullRating(rating)
-    print("|cff00ff00[MB AUDIT]|r: Pull Rating: |cffffffff" .. rating .. "|r")
 end
 
 UI:Initialize()
