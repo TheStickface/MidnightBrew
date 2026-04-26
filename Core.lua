@@ -17,14 +17,12 @@ function MB:OnLoad()
     self:RegisterEvent("UNIT_HEALTH")
     self:RegisterEvent("PLAYER_REGEN_DISABLED")
     self:RegisterEvent("PLAYER_REGEN_ENABLED")
-    self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-    self:RegisterEvent("TOTEM_UPDATE")
+    self:RegisterEvent("PLAYER_TOTEM_UPDATE") -- CORRECTED NAME
     self:RegisterEvent("PLAYER_TARGET_CHANGED")
     self:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
     self:RegisterEvent("GROUP_ROSTER_UPDATE")
     self:RegisterEvent("UNIT_POWER_UPDATE")
     
-    -- Passing named arguments down to the handler
     self:SetScript("OnEvent", function(frame, event, arg1, arg2, arg3) 
         self:OnEvent(event, arg1, arg2, arg3) 
     end)
@@ -62,7 +60,17 @@ function MB:OnEvent(event, arg1, arg2, arg3)
             self:AutoMarkTarget()
             
         elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
-            if arg1 == "player" then self:TrackEnergySpend(arg3) end
+            if arg1 == "player" then 
+                self:TrackEnergySpend(arg3) 
+                if arg3 == 116705 then -- Spear Hand Strike
+                    local targetName = UnitName("target") or "Unknown"
+                    local msg = "MB: Interrupted " .. targetName .. "!"
+                    SendChatMessage(msg, IsInGroup(LE_PARTY_CATEGORY_INSTANCE) and "INSTANCE_CHAT" or "PARTY")
+                end
+            end
+            
+        elseif event == "PLAYER_TOTEM_UPDATE" then
+            self:UpdateStatue()
         end
     end)
 end
