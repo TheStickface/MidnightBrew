@@ -23,35 +23,46 @@ function MB:OnLoad()
     self:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
     self:RegisterEvent("GROUP_ROSTER_UPDATE")
     self:RegisterEvent("UNIT_POWER_UPDATE")
-    self:SetScript("OnEvent", function(f, e, ...) self:OnEvent(e, ...) end)
+    
+    -- Passing named arguments down to the handler
+    self:SetScript("OnEvent", function(frame, event, arg1, arg2, arg3) 
+        self:OnEvent(event, arg1, arg2, arg3) 
+    end)
 end
 
-function MB:OnEvent(event, ...)
+function MB:OnEvent(event, arg1, arg2, arg3)
     ns.Debug:SafeCall(function()
-        if event == "ADDON_LOADED" and ... == addonName then
+        if event == "ADDON_LOADED" and arg1 == addonName then
             MidnightBrewDB = MidnightBrewDB or defaults
             self:UpdateHealerUnit()
+            ns.Debug:Log("SYSTEM", "Core Engine Initialized Successfully")
+            
         elseif event == "UNIT_AURA" then
-            local unit = ...
-            if unit == "player" then self:UpdateAuras() end
-            if unit and unit:find("party") then self:ScanPartyForDispels(unit) end
+            if arg1 == "player" then self:UpdateAuras() end
+            if arg1 and arg1:find("party") then self:ScanPartyForDispels(arg1) end
+            
         elseif event == "UNIT_HEALTH" or event == "UNIT_MAXHEALTH" then
-            if ... == "player" then self:CalculateEHP() end
-            if ... == "target" then self:CheckTouchOfDeath() end
+            if arg1 == "player" then self:CalculateEHP() end
+            if arg1 == "target" then self:CheckTouchOfDeath() end
+            
         elseif event == "PLAYER_REGEN_DISABLED" then
             self.inCombat = true
             self.pullStartTime = GetTime()
+            
         elseif event == "PLAYER_REGEN_ENABLED" then
             self.inCombat = false
+            
         elseif event == "UNIT_POWER_UPDATE" then
-            self:UpdateHealerMana(...)
+            self:UpdateHealerMana(arg1)
+            
         elseif event == "GROUP_ROSTER_UPDATE" then
             self:UpdateHealerUnit()
+            
         elseif event == "PLAYER_TARGET_CHANGED" then
             self:AutoMarkTarget()
+            
         elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
-            local unit, _, spellID = ...
-            if unit == "player" then self:TrackEnergySpend(spellID) end
+            if arg1 == "player" then self:TrackEnergySpend(arg3) end
         end
     end)
 end
@@ -103,6 +114,26 @@ function MB:TrackEnergySpend(spellID)
         if self.energySpent >= 300 then self.energySpent = self.energySpent - 300 end
         if ns.UI then ns.UI:UpdateFlurryProgress(self.energySpent/300) end
     end
+end
+
+function MB:CheckTouchOfDeath()
+    if not UnitExists("target") then return end
+    local isEx = (UnitHealth("target")/UnitHealthMax("target") <= MidnightBrewDB.todThreshold) or (UnitHealth("target") < UnitHealthMax("player"))
+    if ns.UI then ns.UI:UpdateExecuteHUD(isEx) end
+end
+
+function MB:AutoMarkTarget()
+    if not MidnightBrewDB.autoMark or not IsInGroup() then return end
+    local name = UnitName("target")
+    if DANGEROUS_MOBS[name] and GetRaidTargetIndex("target") == nil then
+        SetRaidTarget("target", DANGEROUS_MOBS[name])
+    end
+end
+
+function MB:UpdateStatue()
+    local have = GetTotemInfo(1)
+    local hp = (have) and (UnitHealth("totem1") / UnitHealthMax("totem1") * 100) or 0
+    if ns.UI then ns.UI:UpdateStatueStatus(have, hp) end
 end
 
 MB:OnLoad()
