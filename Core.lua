@@ -5,11 +5,9 @@ ns.Core = MB
 local defaults = { hudEnabled = true, sidebarEnabled = true, todThreshold = 0.15, autoMark = true }
 MB.energySpent = 0
 MB.inCombat = false
+MB.healerUnit = nil
 
-local DANGEROUS_MOBS = {
-    ["Void-Caster"] = 8,
-    ["Ethereal Binder"] = 7,
-}
+local DANGEROUS_MOBS = { ["Void-Caster"] = 8, ["Ethereal Binder"] = 7 }
 
 function MB:OnLoad()
     ns.Debug:Initialize()
@@ -23,41 +21,79 @@ function MB:OnLoad()
     self:RegisterEvent("TOTEM_UPDATE")
     self:RegisterEvent("PLAYER_TARGET_CHANGED")
     self:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
-    self:SetScript("OnEvent", self.OnEvent)
+    self:RegisterEvent("GROUP_ROSTER_UPDATE")
+    self:RegisterEvent("UNIT_POWER_UPDATE")
+    self:SetScript("OnEvent", function(f, e, ...) self:OnEvent(e, ...) end)
 end
 
 function MB:OnEvent(event, ...)
-    if event == "ADDON_LOADED" and ... == addonName then
-        MidnightBrewDB = MidnightBrewDB or defaults
-    elseif event == "UNIT_AURA" and ... == "player" then
-        self:UpdateAuras()
-    elseif event == "UNIT_HEALTH" then
-        self:CalculateEHP()
-        self:CheckTouchOfDeath()
-    elseif event == "PLAYER_REGEN_DISABLED" then
-        self.inCombat = true
-        self.pullStartTime = GetTime()
-    elseif event == "PLAYER_REGEN_ENABLED" then
-        self.inCombat = false
-    elseif event == "COMBAT_LOG_EVENT_UNFILTERED" then
-        self:HandleCombatLog()
-    elseif event == "TOTEM_UPDATE" then
-        self:UpdateStatue()
-    elseif event == "PLAYER_TARGET_CHANGED" then
-        self:AutoMarkTarget()
-    elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
-        local unit, _, spellID = ...
-        if unit == "player" then self:TrackEnergySpend(spellID) end
-    end
+    ns.Debug:SafeCall(function()
+        if event == "ADDON_LOADED" and ... == addonName then
+            MidnightBrewDB = MidnightBrewDB or defaults
+            self:UpdateHealerUnit()
+        elseif event == "UNIT_AURA" then
+            local unit = ...
+            if unit == "player" then self:UpdateAuras() end
+            if unit and unit:find("party") then self:ScanPartyForDispels(unit) end
+        elseif event == "UNIT_HEALTH" or event == "UNIT_MAXHEALTH" then
+            if ... == "player" then self:CalculateEHP() end
+            if ... == "target" then self:CheckTouchOfDeath() end
+        elseif event == "PLAYER_REGEN_DISABLED" then
+            self.inCombat = true
+            self.pullStartTime = GetTime()
+        elseif event == "PLAYER_REGEN_ENABLED" then
+            self.inCombat = false
+        elseif event == "UNIT_POWER_UPDATE" then
+            self:UpdateHealerMana(...)
+        elseif event == "GROUP_ROSTER_UPDATE" then
+            self:UpdateHealerUnit()
+        elseif event == "PLAYER_TARGET_CHANGED" then
+            self:AutoMarkTarget()
+        elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
+            local unit, _, spellID = ...
+            if unit == "player" then self:TrackEnergySpend(spellID) end
+        end
+    end)
 end
 
 function MB:CalculateEHP()
-    local currentHP = UnitHealth("player")
-    local maxHP = UnitHealthMax("player")
-    local stagger = UnitStagger("player") or 0
-    local totalAbsorb = UnitGetTotalAbsorbs("player") or 0
-    local effectiveHP = (currentHP + totalAbsorb) - stagger
-    if ns.UI then ns.UI:UpdateEHPBar((effectiveHP / maxHP) * 100, effectiveHP, totalAbsorb) end
+    local cur, max = UnitHealth("player"), UnitHealthMax("player")
+    local stag = UnitStagger("player") or 0
+    local abs = UnitGetTotalAbsorbs("player") or 0
+    local ehp = (cur + abs) - stag
+    if ns.UI then ns.UI:UpdateEHPBar((ehp/max)*100, ehp, abs) end
+end
+
+function MB:UpdateAuras()
+    local name, _, _, _, _, expTime = AuraUtil.FindAuraByName("Predictive Training", "player")
+    if name and ns.UI then ns.UI:UpdateDodgeTracker(expTime - GetTime()) end
+end
+
+function MB:ScanPartyForDispels(unit)
+    local i = 1
+    while true do
+        local aura = C_UnitAuras.GetAuraDataByIndex(unit, i, "HARMFUL")
+        if not aura then break end
+        if aura.dispelName == "Poison" or aura.dispelName == "Disease" then
+            ns.UI:TriggerDispelAlert(UnitName(unit), aura.dispelName)
+            return
+        end
+        i = i + 1
+    end
+end
+
+function MB:UpdateHealerUnit()
+    for i = 1, GetNumGroupMembers() do
+        local u = (IsInRaid() and "raid"..i or "party"..i)
+        if UnitGroupRolesAssigned(u) == "HEALER" then self.healerUnit = u; return end
+    end
+end
+
+function MB:UpdateHealerMana(unit)
+    if unit == self.healerUnit then
+        local p = (UnitPower(unit, 0) / UnitPowerMax(unit, 0)) * 100
+        if ns.UI then ns.UI:UpdateHealerStatus(p) end
+    end
 end
 
 function MB:TrackEnergySpend(spellID)
@@ -65,37 +101,7 @@ function MB:TrackEnergySpend(spellID)
     if cost and cost[1] then
         self.energySpent = self.energySpent + cost[1].cost
         if self.energySpent >= 300 then self.energySpent = self.energySpent - 300 end
-        if ns.UI then ns.UI:UpdateFlurryProgress(self.energySpent / 300) end
-    end
-end
-
-function MB:UpdateAuras()
-    local name, _, count, _, duration, expirationTime = AuraUtil.FindAuraByName("Predictive Training", "player")
-    if name and ns.UI then ns.UI:UpdateDodgeTracker(expirationTime - GetTime()) end
-    
-    local _, _, fCount = AuraUtil.FindAuraByName("Flurry Strikes", "player")
-    if ns.UI then ns.UI:UpdateFlurryStacks(fCount or 0) end
-end
-
-function MB:AutoMarkTarget()
-    if not MidnightBrewDB.autoMark or not IsInGroup() then return end
-    local targetName = UnitName("target")
-    if DANGEROUS_MOBS[targetName] and GetRaidTargetIndex("target") == nil then
-        SetRaidTarget("target", DANGEROUS_MOBS[targetName])
-    end
-end
-
-function MB:UpdateStatue()
-    local haveTotem = GetTotemInfo(1)
-    local statueHP = (haveTotem) and (UnitHealth("totem1") / UnitHealthMax("totem1") * 100) or 0
-    if ns.UI then ns.UI:UpdateStatueStatus(haveTotem, statueHP) end
-end
-
-function MB:HandleCombatLog()
-    local _, subEvent, _, sourceGUID, _, _, _, _, destName = CombatLogGetCurrentEventInfo()
-    if subEvent == "SPELL_INTERRUPT" and sourceGUID == UnitGUID("player") then
-        local msg = "MB: Interrupted " .. destName .. "!"
-        SendChatMessage(msg, IsInGroup(LE_PARTY_CATEGORY_INSTANCE) and "INSTANCE_CHAT" or "PARTY")
+        if ns.UI then ns.UI:UpdateFlurryProgress(self.energySpent/300) end
     end
 end
 

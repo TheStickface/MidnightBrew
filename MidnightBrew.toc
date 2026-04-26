@@ -2,10 +2,11 @@
 ## Title: MidnightBrew
 ## Notes: Brewmaster Survival Dashboard & M+ Intelligence (12.0.5)
 ## Author: Antigravity
-## Version: 2.0
+## Version: 2.1
 ## SavedVariables: MidnightBrewDB, MidnightBrewDebugDB
 
 Debug.lua
+Tests.lua
 Core.lua
 UI.lua
 Config.lua
