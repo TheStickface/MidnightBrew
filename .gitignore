@@ -1,0 +1,4 @@
+*.lua.bak
+*.toc.bak
+.DS_Store
+Thumbs.db
