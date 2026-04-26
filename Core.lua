@@ -5,6 +5,17 @@ ns.Core = MB
 function MB:StartEngine()
     ns.Debug:Log("SYSTEM", "Starting Heuristics Engine...")
     
+    -- Restore Saved Positions
+    if MidnightBrewDB and MidnightBrewDB.positions then
+        for name, pos in pairs(MidnightBrewDB.positions) do
+            local f = _G[name]
+            if f then
+                f:ClearAllPoints()
+                f:SetPoint(pos[1], UIParent, pos[2], pos[3], pos[4])
+            end
+        end
+    end
+
     -- Safety check: ensure Modules.lua has attached this function
     if self.UpdateCombatState then
         C_Timer.NewTicker(0.5, function() self:UpdateCombatState() end)
