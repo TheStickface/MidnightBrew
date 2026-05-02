@@ -8,5 +8,6 @@ Debug.lua
 Core.lua
 UI.lua
 Modules.lua
+MoHModule.lua
 Config.lua
 Tests.lua
