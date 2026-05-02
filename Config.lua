@@ -35,20 +35,24 @@ end
 CreateToggle("HUD", "Enable Survival HUD", -60, "hudEnabled")
 CreateToggle("Sidebar", "Enable Utility Sidebar", -90, "sidebarEnabled")
 CreateToggle("DungeonIntel", "Enable Dungeon Intelligence", -120, "dungeonIntel")
+CreateToggle("MoH",      "Enable Master of Harmony Panel", -150, "mohEnabled")
+CreateToggle("MoHBlink", "Enable Vitality Alert Blink",    -180, "mohAlertBlink")
 
 -- UNLOCK HUD BUTTON
 local unlockBtn = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
 unlockBtn:SetSize(120, 30)
-unlockBtn:SetPoint("TOPLEFT", 20, -160)
+unlockBtn:SetPoint("TOPLEFT", 20, -210)
 unlockBtn:SetText("Unlock HUD")
-unlockBtn:SetScript("OnClick", function() 
+unlockBtn:SetScript("OnClick", function()
     local MB_HUD = _G["MB_HUD"]
     local MB_Sidebar = _G["MB_Sidebar"]
+    local MB_MoH = _G["MB_MoH"]
     if not MB_HUD then return end
-    
+
     MB_HUD.unlocked = not MB_HUD.unlocked
     if MB_Sidebar then MB_Sidebar.unlocked = MB_HUD.unlocked end
-    
+    if MB_MoH then MB_MoH.unlocked = MB_HUD.unlocked end
+
     print("|cff00ccff[MB]|r: HUD " .. (MB_HUD.unlocked and "|cff00ff00Unlocked|r (Drag with Mouse)" or "|cffff0000Locked|r"))
 end)
 
@@ -57,6 +61,9 @@ testBtn:SetSize(150, 25)
 testBtn:SetPoint("BOTTOMLEFT", 20, 20)
 testBtn:SetText("Run Stability Suite")
 testBtn:SetScript("OnClick", function() if ns.Tests then ns.Tests:RunAll() end end)
+
+-- Resize frame to accommodate new toggles
+frame:SetSize(400, 420)
 
 local closeBtn = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
 closeBtn:SetPoint("TOPRIGHT", 0, 0)
