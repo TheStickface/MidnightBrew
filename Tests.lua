@@ -29,5 +29,11 @@ function Tests:RunAll()
         ns.Debug:Log("TEST", "MoH State Table: Success")
     end)
 
+    ns.Debug:SafeCall(function()
+        assert(_G["MB_MoH"] ~= nil, "MB_MoH frame not created")
+        assert(ns.UI.mohPanel ~= nil, "ns.UI.mohPanel reference missing")
+        ns.Debug:Log("TEST", "MoH Panel Frame: Success")
+    end)
+
     print("|cff00ff00MidnightBrew: All stability tests passed.|r")
 end
