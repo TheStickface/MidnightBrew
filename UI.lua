@@ -76,8 +76,6 @@ function UI:UpdateStateDisplay(state)
     else self.stateValue:SetTextColor(0, 1, 0) end
 end
 
-UI:Initialize()
-
 -- ============================================================================
 -- Master of Harmony Panel
 -- ============================================================================
@@ -269,3 +267,5 @@ function UI:UpdateMoHPanel(state)
 
     self:SetMoHAlertActive(state.harmonyActive or state.vitality >= 100)
 end
+
+UI:Initialize()
