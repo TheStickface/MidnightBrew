@@ -14,13 +14,6 @@ if EditModeManager then
     EditModeManager:RegisterSystem({ instance = MB_MoH, systemName = "MB_MasterOfHarmony", systemType = Enum.EditModeSystemType.Main })
 end
 
--- MoH color constants
-local MOH_BG_COLOR = { 0.07, 0.05, 0.1, 1 }       -- #120d1a
-local MOH_BORDER_COLOR = { 0.29, 0.13, 0.38, 1 }   -- #4a2060
-local MOH_ALERT_BORDER = { 0.88, 0.34, 0.99, 1 }   -- #e056fd
-local MOH_BAR_COLOR = { 0.6, 0.2, 0.9, 1 }         -- purple vitality bar
-local MOH_PIP_LIT = { 0.7, 0.3, 1, 1 }             -- lit charge pip
-local MOH_PIP_DIM = { 0.2, 0.15, 0.25, 0.5 }       -- dim charge pip
 
 function UI:Initialize()
     -- HUD Setup
@@ -90,222 +83,181 @@ UI:Initialize()
 -- ============================================================================
 
 function UI:CreateMoHPanel()
-    self.mohFrame = MB_MoH
-    self.mohPanel = MB_MoH  -- canonical reference used by tests and external callers
-
-    -- Frame setup
-    MB_MoH:SetSize(210, 80)
-    MB_MoH:SetPoint("RIGHT", UIParent, "RIGHT", -160, 0)
-    MB_MoH:SetMovable(true)
-    MB_MoH:EnableMouse(true)
-    MB_MoH:RegisterForDrag("LeftButton")
-    MB_MoH:SetBackdrop({
-        bgFile = "Interface\\Buttons\\WHITE8X8",
+    local panel = MB_MoH  -- frame already created at module level
+    panel:SetSize(210, 80)
+    panel:SetPoint("RIGHT", UIParent, "RIGHT", -160, 0)
+    panel:SetMovable(true)
+    panel:EnableMouse(true)
+    panel:RegisterForDrag("LeftButton")
+    panel:SetBackdrop({
+        bgFile   = "Interface\\Buttons\\WHITE8X8",
         edgeFile = "Interface\\Buttons\\WHITE8X8",
         edgeSize = 1,
     })
-    MB_MoH:SetBackdropColor(unpack(MOH_BG_COLOR))
-    MB_MoH:SetBackdropBorderColor(unpack(MOH_BORDER_COLOR))
+    panel:SetBackdropColor(0.07, 0.05, 0.10, 0.85)
+    panel:SetBackdropBorderColor(0.29, 0.13, 0.38, 1)
 
-    -- Drag scripts (same pattern as other panels)
-    MB_MoH:SetScript("OnDragStart", function(f)
-        if f.unlocked or (EditModeManager and EditModeManager:IsEditModeActive()) then
-            f:StartMoving()
-        end
-    end)
-    MB_MoH:SetScript("OnDragStop", function(f)
-        f:StopMovingOrSizing()
-        local p, _, rp, x, y = f:GetPoint()
-        MidnightBrewDB.positions = MidnightBrewDB.positions or {}
-        MidnightBrewDB.positions[f:GetName()] = {p, rp, x, y}
-    end)
+    local header = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    header:SetPoint("TOPLEFT", panel, "TOPLEFT", 10, -8)
+    header:SetText("MASTER OF HARMONY")
+    header:SetTextColor(0.878, 0.337, 0.992)
 
-    -- Row 1: Vitality label
-    self.mohVitalityLabel = MB_MoH:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    self.mohVitalityLabel:SetPoint("TOPLEFT", 8, -8)
-    self.mohVitalityLabel:SetText("VITALITY")
-    self.mohVitalityLabel:SetTextColor(0.7, 0.3, 1)
+    -- Row 1: Vitality
+    local vitLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    vitLabel:SetPoint("TOPLEFT", panel, "TOPLEFT", 10, -23)
+    vitLabel:SetText("VITALITY")
+    vitLabel:SetTextColor(0.67, 0.67, 0.67)
 
-    -- Row 1: Vitality bar
-    self.mohVitalityBar = CreateFrame("StatusBar", nil, MB_MoH)
-    self.mohVitalityBar:SetPoint("TOPLEFT", 8, -22)
-    self.mohVitalityBar:SetPoint("TOPRIGHT", -55, -22)
-    self.mohVitalityBar:SetHeight(14)
-    self.mohVitalityBar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
-    self.mohVitalityBar:SetStatusBarColor(unpack(MOH_BAR_COLOR))
-    self.mohVitalityBar:SetMinMaxValues(0, 100)
-    self.mohVitalityBar:SetValue(0)
+    local vitValue = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    vitValue:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -10, -23)
+    vitValue:SetText("0")
+    vitValue:SetTextColor(0.878, 0.337, 0.992)
 
-    -- Row 1: Vitality numeric value
-    self.mohVitalityValue = MB_MoH:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    self.mohVitalityValue:SetPoint("TOPRIGHT", -8, -22)
-    self.mohVitalityValue:SetText("0")
-    self.mohVitalityValue:SetJustifyH("RIGHT")
-    self.mohVitalityValue:SetTextColor(1, 1, 1)
+    local vitBar = CreateFrame("StatusBar", nil, panel)
+    vitBar:SetSize(190, 7)
+    vitBar:SetPoint("TOPLEFT", panel, "TOPLEFT", 10, -34)
+    vitBar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
+    vitBar:SetStatusBarColor(0.608, 0.212, 0.949)
+    vitBar:SetMinMaxValues(0, 100)
+    vitBar:SetValue(0)
 
-    -- Row 2: Celestial Infusion label
-    self.mohCILabel = MB_MoH:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    self.mohCILabel:SetPoint("BOTTOMLEFT", 8, -38)
-    self.mohCILabel:SetText("CELESTIAL INFUSION")
-    self.mohCILabel:SetTextColor(0.7, 0.3, 1)
+    -- Row 2: Celestial Infusion pips
+    local celLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    celLabel:SetPoint("TOPLEFT", panel, "TOPLEFT", 10, -48)
+    celLabel:SetText("CELESTIAL INFUSION")
+    celLabel:SetTextColor(0.67, 0.67, 0.67)
 
-    -- Row 2: Charge pips (two 12x12 squares)
-    self.mohPips = {}
+    local pips = {}
     for i = 1, 2 do
-        local pip = CreateFrame("Frame", nil, MB_MoH)
+        local pip = CreateFrame("Frame", nil, panel, "BackdropTemplate")
         pip:SetSize(12, 12)
-        pip:SetPoint("BOTTOMLEFT", 115, -33)
-        pip:SetPoint("LEFT", self.mohPips[i - 1] or pip, "RIGHT", 4, 0)
-        if i == 1 then pip:SetPoint("LEFT", 115, 0) end
-
-        pip.bg = pip:CreateTexture(nil, "BACKGROUND")
-        pip.bg:SetAllPoints()
-        pip.bg:SetTexture("Interface\\Buttons\\WHITE8X8")
-        pip.bg:SetTextureRect(0, 0, 12, 12)
-
+        pip:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -10 - (2 - i) * 16, -46)
         pip:SetBackdrop({
+            bgFile   = "Interface\\Buttons\\WHITE8X8",
             edgeFile = "Interface\\Buttons\\WHITE8X8",
             edgeSize = 1,
         })
-        pip:SetBackdropBorderColor(0.3, 0.2, 0.4, 0.8)
-
-        self.mohPips[i] = pip
+        pip:SetBackdropColor(0, 0.8, 1, 1)
+        pip:SetBackdropBorderColor(0, 0.8, 1, 0.5)
+        pips[i] = pip
     end
 
-    -- Row 3: Aspect of Harmony label
-    self.mohAspectLabel = MB_MoH:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    self.mohAspectLabel:SetPoint("BOTTOMLEFT", 8, -16)
-    self.mohAspectLabel:SetText("ASPECT OF HARMONY")
-    self.mohAspectLabel:SetTextColor(0.7, 0.3, 1)
+    -- Row 3: Aspect of Harmony timer
+    local aspLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    aspLabel:SetPoint("TOPLEFT", panel, "TOPLEFT", 10, -64)
+    aspLabel:SetText("ASPECT OF HARMONY")
+    aspLabel:SetTextColor(0.67, 0.67, 0.67)
 
-    -- Row 3: Aspect timer value
-    self.mohAspectValue = MB_MoH:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    self.mohAspectValue:SetPoint("BOTTOMRIGHT", -8, -16)
-    self.mohAspectValue:SetText("--")
-    self.mohAspectValue:SetJustifyH("RIGHT")
-    self.mohAspectValue:SetTextColor(0.5, 0.5, 0.5)
+    local aspTimer = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    aspTimer:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -10, -64)
+    aspTimer:SetText("--")
+    aspTimer:SetTextColor(0.27, 0.27, 0.27)
 
-    -- Store alert state
-    self.mohAlertActive = false
-    self.mohTicker = nil
-end
-
-function UI:UpdateMoHPanel(state)
-    if not self.mohFrame then return end
-
-    -- Check config visibility
-    if MidnightBrewDB and not MidnightBrewDB.mohEnabled then
-        self.mohFrame:Hide()
-        return
-    end
-    self.mohFrame:Show()
-
-    local vitality = state.vitality or 0
-    local harmonyActive = state.harmonyActive or false
-    local harmonyExpiry = state.harmonyExpiry or 0
-    local charges = state.celInfCharges or 0
-
-    -- Update vitality bar
-    self.mohVitalityBar:SetValue(vitality)
-    self.mohVitalityValue:SetText(tostring(vitality))
-
-    -- Update charge pips
-    for i = 1, 2 do
-        local pip = self.mohPips[i]
-        if i <= charges then
-            pip.bg:SetColorTexture(unpack(MOH_PIP_LIT))
-            pip:SetBackdropBorderColor(0.8, 0.4, 1, 1)
-        else
-            pip.bg:SetColorTexture(unpack(MOH_PIP_DIM))
-            pip:SetBackdropBorderColor(0.3, 0.2, 0.4, 0.5)
+    -- Drag scripts — identical pattern to MB_HUD / MB_Sidebar
+    panel:SetScript("OnDragStart", function(self)
+        if self.unlocked or (EditModeManager and EditModeManager:IsEditModeActive()) then
+            self:StartMoving()
         end
-    end
+    end)
+    panel:SetScript("OnDragStop", function(self)
+        self:StopMovingOrSizing()
+        local p, _, rp, x, y = self:GetPoint()
+        MidnightBrewDB.positions = MidnightBrewDB.positions or {}
+        MidnightBrewDB.positions[self:GetName()] = { p, rp, x, y }
+    end)
 
-    -- Handle state transitions
-    if harmonyActive then
-        -- Aspect active state
-        self.mohVitalityBar:SetAlpha(0.4)
-        self.mohVitalityLabel:SetText("-- locked --")
-        self.mohVitalityLabel:SetTextColor(0.5, 0.5, 0.5)
-        self.mohAspectLabel:SetTextColor(0.7, 0.3, 1)
-
-        -- Stop alert if active
-        if self.mohAlertActive then
-            self:SetMoHAlertActive(false)
-        end
-
-        -- Start ticker for countdown
-        self:StartMoHTicker(harmonyExpiry)
-
-    elseif vitality >= 100 then
-        -- Alert state
-        self.mohVitalityBar:SetAlpha(1)
-        self.mohVitalityLabel:SetText("VITALITY")
-        self.mohVitalityLabel:SetTextColor(0.7, 0.3, 1)
-        self.mohAspectValue:SetText("--")
-        self.mohAspectValue:SetTextColor(0.5, 0.5, 0.5)
-
-        self:SetMoHAlertActive(true)
-        self:StartMoHTicker(0)
-
-    else
-        -- Idle state
-        self.mohVitalityBar:SetAlpha(1)
-        self.mohVitalityLabel:SetText("VITALITY")
-        self.mohVitalityLabel:SetTextColor(0.7, 0.3, 1)
-        self.mohAspectValue:SetText("--")
-        self.mohAspectValue:SetTextColor(0.5, 0.5, 0.5)
-
-        self:SetMoHAlertActive(false)
-        self:StopMoHTicker()
-    end
+    self.mohPanel         = panel
+    self.mohVitalityLabel = vitLabel
+    self.mohVitalityValue = vitValue
+    self.mohVitalityBar   = vitBar
+    self.mohPips          = pips
+    self.mohAspectLabel   = aspLabel
+    self.mohAspectTimer   = aspTimer
+    self.mohTicker        = nil
 end
 
 function UI:SetMoHAlertActive(active)
-    self.mohAlertActive = active
-
     if active then
-        -- Bright border + glow
-        MB_MoH:SetBackdropBorderColor(unpack(MOH_ALERT_BORDER))
+        if not self.mohTicker then
+            self.mohTicker = C_Timer.NewTicker(0.1, function()
+                if ns.MoH and ns.MoH.harmonyActive then
+                    local remaining = ns.MoH.harmonyExpiry - GetTime()
+                    if remaining > 0 then
+                        self.mohAspectTimer:SetText(string.format("%.1fs", remaining))
+                    else
+                        self.mohAspectTimer:SetText("--")
+                        self.mohAspectTimer:SetTextColor(0.27, 0.27, 0.27)
+                    end
+                end
+                if ns.MoH and ns.MoH.vitality >= 100 and MidnightBrewDB.mohAlertBlink ~= false then
+                    local alpha = 0.8 + 0.2 * math.sin(GetTime() * 2 * math.pi / 1.2)
+                    self.mohVitalityLabel:SetAlpha(alpha)
+                    self.mohVitalityValue:SetAlpha(alpha)
+                else
+                    self.mohVitalityLabel:SetAlpha(1)
+                    self.mohVitalityValue:SetAlpha(1)
+                end
+            end)
+        end
     else
-        -- Revert to normal border
-        MB_MoH:SetBackdropBorderColor(unpack(MOH_BORDER_COLOR))
-        -- Reset vitality label alpha (was blinking)
-        if self.mohVitalityLabel then
-            self.mohVitalityLabel:SetAlpha(1)
+        if self.mohTicker then
+            self.mohTicker:Cancel()
+            self.mohTicker = nil
         end
+        if self.mohVitalityLabel then self.mohVitalityLabel:SetAlpha(1) end
+        if self.mohVitalityValue  then self.mohVitalityValue:SetAlpha(1)  end
     end
 end
 
-function UI:StartMoHTicker(harmonyExpiry)
-    -- Stop existing ticker to prevent orphans
-    self:StopMoHTicker()
-
-    self.mohTicker = C_Timer.NewTicker(0.1, function()
-        if harmonyExpiry and harmonyExpiry > 0 then
-            -- Aspect countdown
-            local remaining = harmonyExpiry - GetTime()
-            if remaining <= 0 then
-                self.mohAspectValue:SetText("--")
-                self.mohAspectValue:SetTextColor(0.5, 0.5, 0.5)
-            else
-                self.mohAspectValue:SetText(string.format("%.1fs", remaining))
-                self.mohAspectValue:SetTextColor(0.7, 0.3, 1)
-            end
-        end
-
-        -- Alert blink (softer: 1 -> 0.6, 1.2s cycle)
-        if self.mohAlertActive and MidnightBrewDB and MidnightBrewDB.mohAlertBlink ~= false then
-            local t = GetTime()
-            local alpha = 0.6 + 0.4 * math.abs(math.sin(t * math.pi / 0.6)) -- 1.2s cycle
-            self.mohVitalityLabel:SetAlpha(alpha)
-        end
-    end)
-end
-
-function UI:StopMoHTicker()
-    if self.mohTicker then
-        self.mohTicker:Cancel()
-        self.mohTicker = nil
+function UI:UpdateMoHPanel(state)
+    if not self.mohPanel then return end
+    if MidnightBrewDB and MidnightBrewDB.mohEnabled == false then
+        self.mohPanel:Hide()
+        return
     end
+    self.mohPanel:Show()
+
+    if state.harmonyActive then
+        self.mohVitalityLabel:SetText("VITALITY")
+        self.mohVitalityLabel:SetTextColor(0.4, 0.4, 0.4)
+        self.mohVitalityValue:SetText("-- locked --")
+        self.mohVitalityValue:SetTextColor(0.4, 0.4, 0.4)
+        self.mohVitalityBar:SetAlpha(0.4)
+        self.mohPanel:SetBackdropBorderColor(0.29, 0.13, 0.38, 1)
+        self.mohAspectLabel:SetTextColor(0.878, 0.337, 0.992)
+    elseif state.vitality >= 100 then
+        self.mohVitalityLabel:SetText("VITALITY")
+        self.mohVitalityLabel:SetTextColor(0.878, 0.337, 0.992)
+        self.mohVitalityValue:SetText("SPEND NOW")
+        self.mohVitalityValue:SetTextColor(0.878, 0.337, 0.992)
+        self.mohVitalityBar:SetValue(100)
+        self.mohVitalityBar:SetAlpha(1)
+        self.mohPanel:SetBackdropBorderColor(0.878, 0.337, 0.992, 1)
+        self.mohAspectLabel:SetTextColor(0.67, 0.67, 0.67)
+        self.mohAspectTimer:SetText("--")
+        self.mohAspectTimer:SetTextColor(0.27, 0.27, 0.27)
+    else
+        self.mohVitalityLabel:SetText("VITALITY")
+        self.mohVitalityLabel:SetTextColor(0.67, 0.67, 0.67)
+        self.mohVitalityValue:SetText(tostring(state.vitality))
+        self.mohVitalityValue:SetTextColor(0.878, 0.337, 0.992)
+        self.mohVitalityBar:SetValue(state.vitality)
+        self.mohVitalityBar:SetAlpha(1)
+        self.mohPanel:SetBackdropBorderColor(0.29, 0.13, 0.38, 1)
+        self.mohAspectLabel:SetTextColor(0.67, 0.67, 0.67)
+        self.mohAspectTimer:SetText("--")
+        self.mohAspectTimer:SetTextColor(0.27, 0.27, 0.27)
+    end
+
+    for i, pip in ipairs(self.mohPips) do
+        if i <= state.celInfCharges then
+            pip:SetBackdropColor(0, 0.8, 1, 1)
+            pip:SetBackdropBorderColor(0, 0.8, 1, 0.7)
+        else
+            pip:SetBackdropColor(0.10, 0.16, 0.23, 1)
+            pip:SetBackdropBorderColor(0.20, 0.20, 0.20, 1)
+        end
+    end
+
+    self:SetMoHAlertActive(state.harmonyActive or state.vitality >= 100)
 end
