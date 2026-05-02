@@ -171,6 +171,7 @@ function UI:CreateMoHPanel()
     self.mohVitalityValue = vitValue
     self.mohVitalityBar   = vitBar
     self.mohPips          = pips
+    self.mohCelLabel      = celLabel
     self.mohAspectLabel   = aspLabel
     self.mohAspectTimer   = aspTimer
     self.mohTicker        = nil
@@ -180,6 +181,10 @@ function UI:SetMoHAlertActive(active)
     if active then
         if not self.mohTicker then
             self.mohTicker = C_Timer.NewTicker(0.1, function()
+                if not (ns.MoH and (ns.MoH.harmonyActive or ns.MoH.vitality >= 100)) then
+                    self:SetMoHAlertActive(false)
+                    return
+                end
                 if ns.MoH and ns.MoH.harmonyActive then
                     local remaining = ns.MoH.harmonyExpiry - GetTime()
                     if remaining > 0 then
@@ -188,6 +193,9 @@ function UI:SetMoHAlertActive(active)
                         self.mohAspectTimer:SetText("--")
                         self.mohAspectTimer:SetTextColor(0.27, 0.27, 0.27)
                     end
+                else
+                    self.mohAspectTimer:SetText("--")
+                    self.mohAspectTimer:SetTextColor(0.27, 0.27, 0.27)
                 end
                 if ns.MoH and ns.MoH.vitality >= 100 and MidnightBrewDB.mohAlertBlink ~= false then
                     local alpha = 0.8 + 0.2 * math.sin(GetTime() * 2 * math.pi / 1.2)
