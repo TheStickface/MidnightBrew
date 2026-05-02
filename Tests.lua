@@ -22,6 +22,12 @@ function Tests:RunAll()
         ns.UI:TriggerTigerLustAlert()
         ns.Debug:Log("TEST", "Tiger's Lust Alert: Success")
     end)
-    
+
+    -- MoH Module
+    ns.Debug:SafeCall(function()
+        assert(ns.MoH ~= nil, "ns.MoH state table missing")
+        ns.Debug:Log("TEST", "MoH State Table: Success")
+    end)
+
     print("|cff00ff00MidnightBrew: All stability tests passed.|r")
 end

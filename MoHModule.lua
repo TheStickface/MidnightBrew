@@ -53,5 +53,33 @@ MB:RegisterModule("MasterOfHarmony", {"UNIT_AURA", "PLAYER_SPECIALIZATION_CHANGE
         return
     end
     if unit ~= "player" then return end
-    -- full update logic added in Task 2
+
+    -- Aspect of Harmony (spending period active?)
+    local harmonyAura = GetPlayerAura(SPELL_ASPECT_OF_HARMONY)
+    if harmonyAura then
+        ns.MoH.harmonyActive = true
+        ns.MoH.harmonyExpiry = harmonyAura.expirationTime
+    else
+        ns.MoH.harmonyActive = false
+        ns.MoH.harmonyExpiry = 0
+    end
+
+    -- Vitality (aura stacks — disabled until SPELL_VITALITY_AURA is confirmed)
+    if not ns.MoH.harmonyActive then
+        local vitalityAura = GetPlayerAura(SPELL_VITALITY_AURA)
+        if vitalityAura then
+            ns.MoH.vitality = math.min(100, vitalityAura.applications or 0)
+        else
+            ns.MoH.vitality = 0
+        end
+    end
+
+    -- Celestial Infusion charges
+    local charges, maxCharges = GetCelInfCharges()
+    ns.MoH.celInfCharges    = charges
+    ns.MoH.celInfMaxCharges = maxCharges
+
+    if ns.UI and ns.UI.UpdateMoHPanel then
+        ns.UI:UpdateMoHPanel(ns.MoH)
+    end
 end)
