@@ -35,10 +35,13 @@ end
 local function GetCelInfCharges()
     if C_Spell and C_Spell.GetSpellCharges then
         local info = C_Spell.GetSpellCharges(SPELL_CELESTIAL_INFUSION)
-        if info then return info.currentCharges or 0, info.maxCharges or 2 end
+        return (info and info.currentCharges or 0), (info and info.maxCharges or 2)
     end
-    local charges, maxCharges = GetSpellCharges(SPELL_CELESTIAL_INFUSION)
-    return charges or 0, maxCharges or 2
+    if GetSpellCharges then
+        local charges, maxCharges = GetSpellCharges(SPELL_CELESTIAL_INFUSION)
+        return charges or 0, maxCharges or 2
+    end
+    return 0, 2
 end
 
 MB:RegisterModule("MasterOfHarmony", {"UNIT_AURA", "PLAYER_SPECIALIZATION_CHANGED"}, function(event, unit)

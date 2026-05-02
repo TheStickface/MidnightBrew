@@ -34,13 +34,20 @@ end
 
 function MB:OnEvent(event, arg1)
     if event == "ADDON_LOADED" and arg1 == addonName then
-        local defaults = { hudEnabled = true, sidebarEnabled = true, todThreshold = 0.15, autoMark = true }
+        local defaults = {
+            hudEnabled = true,
+            sidebarEnabled = true,
+            mohEnabled = true,
+            mohAlertBlink = true,
+            todThreshold = 0.15,
+            autoMark = true,
+        }
         MidnightBrewDB = MidnightBrewDB or defaults
         self:StartEngine()
     end
     
     if self.DispatchModuleEvent then
-        self:DispatchModuleEvent(event)
+        self:DispatchModuleEvent(event, arg1)
     end
 end
 
