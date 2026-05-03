@@ -250,7 +250,9 @@ function UI:UpdateMoHPanel(state)
     else
         self.mohVitalityLabel:SetText("VITALITY")
         self.mohVitalityLabel:SetTextColor(0.67, 0.67, 0.67)
-        self.mohVitalityValue:SetText(tostring(state.vitality))
+        local raw = state.vitalityRaw or 0
+        local display = raw >= 1000 and string.format("%.0fk", raw / 1000) or tostring(math.floor(raw))
+        self.mohVitalityValue:SetText(display)
         self.mohVitalityValue:SetTextColor(0.878, 0.337, 0.992)
         self.mohVitalityBar:SetValue(state.vitality)
         self.mohVitalityBar:SetAlpha(1)
