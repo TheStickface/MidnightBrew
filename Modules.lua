@@ -114,8 +114,15 @@ end)
 local pullHistory = {}
 
 MB:RegisterModule("LearningEngine", {"PLAYER_REGEN_ENABLED"}, function(event)
+    if event ~= "PLAYER_REGEN_ENABLED" then return end
     local lastRating = MB.LastPullRating or "B"
-    local hp = UnitPercentHealth and UnitPercentHealth("player") or (UnitHealth("player")/UnitHealthMax("player")*100)
+    local hp
+    if UnitPercentHealth then
+        hp = UnitPercentHealth("player")
+    else
+        local ok, val = pcall(function() return UnitHealth("player") / UnitHealthMax("player") * 100 end)
+        hp = ok and val or 0
+    end
     
     table.insert(pullHistory, { rating = lastRating, hp = hp })
     
