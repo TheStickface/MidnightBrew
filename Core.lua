@@ -30,6 +30,7 @@ function MB:StartEngine()
     self:RegisterEvent("PLAYER_TOTEM_UPDATE")
     self:RegisterEvent("PLAYER_TARGET_CHANGED")
     self:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
+    self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
 end
 
 function MB:OnEvent(event, arg1)

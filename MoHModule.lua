@@ -39,9 +39,6 @@ local function GetCelInfCharges()
     return 0, 2
 end
 
--- Register CLEU on the core event frame so DispatchModuleEvent routes it to us
-MB:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-
 MB:RegisterModule("MasterOfHarmony", {"UNIT_AURA", "PLAYER_SPECIALIZATION_CHANGED", "COMBAT_LOG_EVENT_UNFILTERED"}, function(event, unit)
 
     if event == "PLAYER_SPECIALIZATION_CHANGED" then
