@@ -106,7 +106,7 @@ MB:RegisterModule("Auditor", {"PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED", "
         
         local rating = score > 2 and "S" or (score > 1 and "A" or "B")
         MB.LastPullRating = rating -- Save for Learning Engine
-        if ns.UI then ns.UI:ShowPullRating(rating) end
+        if ns.UI and ns.UI.ShowPullRating then ns.UI:ShowPullRating(rating) end
     end
 end)
 
