@@ -37,7 +37,10 @@ function MB:UpdateCombatState()
         -- Fallback to Retail (Direct Math)
         local cur = UnitHealth("player")
         local max = UnitHealthMax("player")
-        if type(cur) == "number" and max and max > 0 then hpPct = (cur / max) * 100 end
+        if max and max > 0 then
+            local ok, val = pcall(function() return (cur / max) * 100 end)
+            if ok then hpPct = val end
+        end
     end
     
     local speed = 0

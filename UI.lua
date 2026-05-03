@@ -7,12 +7,17 @@ local MB_HUD = CreateFrame("Frame", "MB_HUD", UIParent, "BackdropTemplate")
 local MB_Sidebar = CreateFrame("Frame", "MB_Sidebar", UIParent, "BackdropTemplate")
 local MB_MoH = CreateFrame("Frame", "MB_MoH", UIParent, "BackdropTemplate")
 
--- Edit Mode Registration
-if EditModeManager then
-    EditModeManager:RegisterSystem({ instance = MB_HUD, systemName = "MB_SurvivalHUD", systemType = Enum.EditModeSystemType.Main })
-    EditModeManager:RegisterSystem({ instance = MB_Sidebar, systemName = "MB_UtilitySidebar", systemType = Enum.EditModeSystemType.Main })
-    EditModeManager:RegisterSystem({ instance = MB_MoH, systemName = "MB_MasterOfHarmony", systemType = Enum.EditModeSystemType.Main })
-end
+-- Edit Mode Registration — deferred to PLAYER_LOGIN to avoid tainting combat APIs
+local editModeFrame = CreateFrame("Frame")
+editModeFrame:RegisterEvent("PLAYER_LOGIN")
+editModeFrame:SetScript("OnEvent", function(self)
+    self:UnregisterEvent("PLAYER_LOGIN")
+    if EditModeManager then
+        EditModeManager:RegisterSystem({ instance = MB_HUD, systemName = "MB_SurvivalHUD", systemType = Enum.EditModeSystemType.Main })
+        EditModeManager:RegisterSystem({ instance = MB_Sidebar, systemName = "MB_UtilitySidebar", systemType = Enum.EditModeSystemType.Main })
+        EditModeManager:RegisterSystem({ instance = MB_MoH, systemName = "MB_MasterOfHarmony", systemType = Enum.EditModeSystemType.Main })
+    end
+end)
 
 
 function UI:Initialize()
